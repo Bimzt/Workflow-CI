@@ -85,60 +85,101 @@ def save_classification_report(y_true, y_pred, path='classification_report.json'
     return path
 
 # Training
-active_run = mlflow.active_run()
-if active_run is None:
-    # Fallback: jalankan standalone (misal saat testing lokal)
-    mlflow.set_experiment("heart-disease-ci")
-    ctx = mlflow.start_run(run_name="RandomForest_CI")
+env_run_id = os.environ.get('MLFLOW_RUN_ID')
+
+if env_run_id:
+    print(f"Menggunakan run dari CLI: {env_run_id}")
+    with mlflow.start_run(run_id=env_run_id):
+        params = {
+            'n_estimators'     : args.n_estimators,
+            'max_depth'        : args.max_depth,
+            'min_samples_split': args.min_samples_split,
+            'max_features'     : args.max_features,
+            'random_state'     : 42
+        }
+        mlflow.log_params(params)
+
+        model = RandomForestClassifier(**params)
+        model.fit(X_train, y_train)
+
+        y_pred      = model.predict(X_test)
+        y_pred_prob = model.predict_proba(X_test)[:, 1]
+        cv_scores   = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
+
+        acc     = accuracy_score(y_test, y_pred)
+        f1      = f1_score(y_test, y_pred)
+        prec    = precision_score(y_test, y_pred)
+        rec     = recall_score(y_test, y_pred)
+        roc_auc = roc_auc_score(y_test, y_pred_prob)
+
+        mlflow.log_metric("accuracy",         acc)
+        mlflow.log_metric("f1_score",         f1)
+        mlflow.log_metric("precision",        prec)
+        mlflow.log_metric("recall",           rec)
+        mlflow.log_metric("roc_auc",          roc_auc)
+        mlflow.log_metric("cv_accuracy_mean", cv_scores.mean())
+        mlflow.log_metric("cv_accuracy_std",  cv_scores.std())
+
+        mlflow.sklearn.log_model(model, artifact_path="model")
+
+        cm_path  = save_confusion_matrix(y_test, y_pred)
+        fi_path  = save_feature_importance(model, X_train.columns.tolist())
+        rep_path = save_classification_report(y_test, y_pred)
+
+        mlflow.log_artifact(cm_path,  artifact_path="plots")
+        mlflow.log_artifact(fi_path,  artifact_path="plots")
+        mlflow.log_artifact(rep_path, artifact_path="reports")
+
+        run_id = mlflow.active_run().info.run_id
 else:
-    ctx = mlflow.start_run(nested=True)
+    mlflow.set_experiment("heart-disease-ci")
+    with mlflow.start_run(run_name="RandomForest_CI"):
+        params = {
+            'n_estimators'     : args.n_estimators,
+            'max_depth'        : args.max_depth,
+            'min_samples_split': args.min_samples_split,
+            'max_features'     : args.max_features,
+            'random_state'     : 42
+        }
+        mlflow.log_params(params)
 
-with ctx:
-    params = {
-        'n_estimators'     : args.n_estimators,
-        'max_depth'        : args.max_depth,
-        'min_samples_split': args.min_samples_split,
-        'max_features'     : args.max_features,
-        'random_state'     : 42
-    }
-    mlflow.log_params(params)
+        model = RandomForestClassifier(**params)
+        model.fit(X_train, y_train)
 
-    model = RandomForestClassifier(**params)
-    model.fit(X_train, y_train)
+        y_pred      = model.predict(X_test)
+        y_pred_prob = model.predict_proba(X_test)[:, 1]
+        cv_scores   = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
 
-    y_pred      = model.predict(X_test)
-    y_pred_prob = model.predict_proba(X_test)[:, 1]
-    cv_scores   = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
+        acc     = accuracy_score(y_test, y_pred)
+        f1      = f1_score(y_test, y_pred)
+        prec    = precision_score(y_test, y_pred)
+        rec     = recall_score(y_test, y_pred)
+        roc_auc = roc_auc_score(y_test, y_pred_prob)
 
-    acc     = accuracy_score(y_test, y_pred)
-    f1      = f1_score(y_test, y_pred)
-    prec    = precision_score(y_test, y_pred)
-    rec     = recall_score(y_test, y_pred)
-    roc_auc = roc_auc_score(y_test, y_pred_prob)
+        mlflow.log_metric("accuracy",         acc)
+        mlflow.log_metric("f1_score",         f1)
+        mlflow.log_metric("precision",        prec)
+        mlflow.log_metric("recall",           rec)
+        mlflow.log_metric("roc_auc",          roc_auc)
+        mlflow.log_metric("cv_accuracy_mean", cv_scores.mean())
+        mlflow.log_metric("cv_accuracy_std",  cv_scores.std())
 
-    mlflow.log_metric("accuracy",         acc)
-    mlflow.log_metric("f1_score",         f1)
-    mlflow.log_metric("precision",        prec)
-    mlflow.log_metric("recall",           rec)
-    mlflow.log_metric("roc_auc",          roc_auc)
-    mlflow.log_metric("cv_accuracy_mean", cv_scores.mean())
-    mlflow.log_metric("cv_accuracy_std",  cv_scores.std())
+        mlflow.sklearn.log_model(model, artifact_path="model")
 
-    mlflow.sklearn.log_model(model, artifact_path="model")
+        cm_path  = save_confusion_matrix(y_test, y_pred)
+        fi_path  = save_feature_importance(model, X_train.columns.tolist())
+        rep_path = save_classification_report(y_test, y_pred)
 
-    cm_path  = save_confusion_matrix(y_test, y_pred)
-    fi_path  = save_feature_importance(model, X_train.columns.tolist())
-    rep_path = save_classification_report(y_test, y_pred)
+        mlflow.log_artifact(cm_path,  artifact_path="plots")
+        mlflow.log_artifact(fi_path,  artifact_path="plots")
+        mlflow.log_artifact(rep_path, artifact_path="reports")
 
-    mlflow.log_artifact(cm_path,  artifact_path="plots")
-    mlflow.log_artifact(fi_path,  artifact_path="plots")
-    mlflow.log_artifact(rep_path, artifact_path="reports")
+        run_id = mlflow.active_run().info.run_id
 
-    run_id = mlflow.active_run().info.run_id
-    print(f"\nRun ID: {run_id}")
-    print(f"   Accuracy : {acc:.4f}")
-    print(f"   F1 Score : {f1:.4f}")
-    print(f"   ROC-AUC  : {roc_auc:.4f}")
+print(f"\nRun ID: {run_id}")
+print(f"   Accuracy : {acc:.4f}")
+print(f"   F1 Score : {f1:.4f}")
+print(f"   ROC-AUC  : {roc_auc:.4f}")
 
 # Simpan run_id
 with open(os.path.join(BASE_DIR, '..', 'run_id.txt'), 'w') as f:
