@@ -84,12 +84,11 @@ def save_classification_report(y_true, y_pred, path='classification_report.json'
     return path
 
 # Training
-experiment_name = "heart-disease-ci"
-if not mlflow.get_experiment_by_name(experiment_name):
-    mlflow.create_experiment(experiment_name)
-mlflow.set_experiment(experiment_name)
+active_run = mlflow.active_run()
+if active_run is None:
+    active_run = mlflow.start_run(run_name="RandomForest_CI")
 
-with mlflow.start_run(run_name="RandomForest_CI"):
+with mlflow.start_run(run_id=active_run.info.run_id):
 
     params = {
         'n_estimators'     : args.n_estimators,
