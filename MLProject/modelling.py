@@ -81,7 +81,10 @@ def save_classification_report(y_true, y_pred, path='classification_report.json'
     return path
 
 # Training
-mlflow.set_experiment("/heart-disease-ci")
+experiment_name = "heart-disease-ci"
+if not mlflow.get_experiment_by_name(experiment_name):
+    mlflow.create_experiment(experiment_name)
+mlflow.set_experiment(experiment_name)
 
 with mlflow.start_run(run_name="RandomForest_CI"):
 
