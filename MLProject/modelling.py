@@ -27,10 +27,11 @@ parser.add_argument('--max_features',      type=str,   default='sqrt')
 args = parser.parse_args()
 
 # Konfigurasi DagsHub
-os.environ['MLFLOW_TRACKING_USERNAME'] = os.environ.get('MLFLOW_TRACKING_USERNAME', 'Bimzt')
-os.environ['MLFLOW_TRACKING_PASSWORD'] = os.environ.get('MLFLOW_TRACKING_PASSWORD', '')
-
-dagshub.init(repo_owner='Bimzt', repo_name='Eksperimen_SML_Bima_Setia', mlflow=True)
+MLFLOW_USERNAME = os.environ.get('MLFLOW_TRACKING_USERNAME', 'Bimzt')
+MLFLOW_PASSWORD = os.environ.get('MLFLOW_TRACKING_PASSWORD', '08a74973704bdd270b1becf7b837b39f84e2cbc4')
+os.environ['MLFLOW_TRACKING_USERNAME'] = MLFLOW_USERNAME
+os.environ['MLFLOW_TRACKING_PASSWORD'] = MLFLOW_PASSWORD
+mlflow.set_tracking_uri("https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow")
 
 # Load data
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
