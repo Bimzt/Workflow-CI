@@ -1,7 +1,6 @@
 import os
 import json
 import argparse
-import dagshub
 import mlflow
 import mlflow.sklearn
 import pandas as pd
@@ -26,11 +25,12 @@ parser.add_argument('--min_samples_split', type=int,   default=2)
 parser.add_argument('--max_features',      type=str,   default='sqrt')
 args = parser.parse_args()
 
-# Konfigurasi DagsHub
 MLFLOW_USERNAME = os.environ.get('MLFLOW_TRACKING_USERNAME', 'Bimzt')
 MLFLOW_PASSWORD = os.environ.get('MLFLOW_TRACKING_PASSWORD', '08a74973704bdd270b1becf7b837b39f84e2cbc4')
+
 os.environ['MLFLOW_TRACKING_USERNAME'] = MLFLOW_USERNAME
 os.environ['MLFLOW_TRACKING_PASSWORD'] = MLFLOW_PASSWORD
+
 mlflow.set_tracking_uri("https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow")
 
 # Load data
@@ -85,7 +85,6 @@ mlflow.set_experiment("heart-disease-ci")
 
 with mlflow.start_run(run_name="RandomForest_CI"):
 
-    # Params
     params = {
         'n_estimators'     : args.n_estimators,
         'max_depth'        : args.max_depth,
@@ -95,11 +94,9 @@ with mlflow.start_run(run_name="RandomForest_CI"):
     }
     mlflow.log_params(params)
 
-    # Train
     model = RandomForestClassifier(**params)
     model.fit(X_train, y_train)
 
-    # Evaluate
     y_pred      = model.predict(X_test)
     y_pred_prob = model.predict_proba(X_test)[:, 1]
     cv_scores   = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
@@ -110,7 +107,6 @@ with mlflow.start_run(run_name="RandomForest_CI"):
     rec     = recall_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_pred_prob)
 
-    # Log metrics
     mlflow.log_metric("accuracy",         acc)
     mlflow.log_metric("f1_score",         f1)
     mlflow.log_metric("precision",        prec)
@@ -119,10 +115,8 @@ with mlflow.start_run(run_name="RandomForest_CI"):
     mlflow.log_metric("cv_accuracy_mean", cv_scores.mean())
     mlflow.log_metric("cv_accuracy_std",  cv_scores.std())
 
-    # Log model
     mlflow.sklearn.log_model(model, artifact_path="model")
 
-    # Log artefak tambahan
     cm_path  = save_confusion_matrix(y_test, y_pred)
     fi_path  = save_feature_importance(model, X_train.columns.tolist())
     rep_path = save_classification_report(y_test, y_pred)
@@ -137,11 +131,10 @@ with mlflow.start_run(run_name="RandomForest_CI"):
     print(f"   F1 Score : {f1:.4f}")
     print(f"   ROC-AUC  : {roc_auc:.4f}")
 
-# Simpan run_id ke file untuk diambil workflow
-with open('run_id.txt', 'w') as f:
+# Simpan run_id
+with open(os.path.join(BASE_DIR, '..', 'run_id.txt'), 'w') as f:
     f.write(run_id)
 
-# Cleanup temp files
 for fp in [cm_path, fi_path, rep_path]:
     if os.path.exists(fp):
         os.remove(fp)
