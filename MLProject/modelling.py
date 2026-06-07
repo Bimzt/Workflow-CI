@@ -25,6 +25,7 @@ parser.add_argument('--min_samples_split', type=int,   default=2)
 parser.add_argument('--max_features',      type=str,   default='sqrt')
 args = parser.parse_args()
 
+# Credentials dari environment
 MLFLOW_USERNAME = os.environ.get('MLFLOW_TRACKING_USERNAME')
 MLFLOW_PASSWORD = os.environ.get('MLFLOW_TRACKING_PASSWORD')
 
@@ -86,10 +87,13 @@ def save_classification_report(y_true, y_pred, path='classification_report.json'
 # Training
 active_run = mlflow.active_run()
 if active_run is None:
-    active_run = mlflow.start_run(run_name="RandomForest_CI")
+    # Fallback: jalankan standalone (misal saat testing lokal)
+    mlflow.set_experiment("heart-disease-ci")
+    ctx = mlflow.start_run(run_name="RandomForest_CI")
+else:
+    ctx = mlflow.start_run(nested=True)
 
-with mlflow.start_run(run_id=active_run.info.run_id):
-
+with ctx:
     params = {
         'n_estimators'     : args.n_estimators,
         'max_depth'        : args.max_depth,
