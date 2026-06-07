@@ -41,23 +41,18 @@ jobs:
           pip install mlflow==2.19.0 scikit-learn==1.5.0 \
                       pandas==2.2.2 numpy==1.26.4 matplotlib==3.9.0 seaborn==0.13.2
 
-      - name: Debug - Test DagsHub connection
-        env:
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      - name: Debug - Check secrets exist
         run: |
-          python - <<'EOF'
-          import os, mlflow
-          uri = "https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow"
-          os.environ['MLFLOW_TRACKING_USERNAME'] = os.environ.get('MLFLOW_TRACKING_USERNAME', '')
-          os.environ['MLFLOW_TRACKING_PASSWORD'] = os.environ.get('MLFLOW_TRACKING_PASSWORD', '')
-          print("Username set:", bool(os.environ['MLFLOW_TRACKING_USERNAME']))
-          print("Password set:", bool(os.environ['MLFLOW_TRACKING_PASSWORD']))
-          mlflow.set_tracking_uri(uri)
-          client = mlflow.tracking.MlflowClient()
-          exps = client.search_experiments()
-          print("Experiments found:", len(exps))
-          EOF
+          if [ -z "${{ secrets.MLFLOW_TRACKING_USERNAME }}" ]; then
+            echo "MLFLOW_TRACKING_USERNAME is EMPTY"
+          else
+            echo "MLFLOW_TRACKING_USERNAME is SET"
+          fi
+          if [ -z "${{ secrets.MLFLOW_TRACKING_PASSWORD }}" ]; then
+            echo "MLFLOW_TRACKING_PASSWORD is EMPTY"
+          else
+            echo "MLFLOW_TRACKING_PASSWORD is SET"
+          fi
 
       # - name: Run mlflow project
       #   run: |
