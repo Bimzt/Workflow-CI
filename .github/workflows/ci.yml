@@ -69,6 +69,7 @@ jobs:
           mlflow models build-docker \
             --model-uri "runs:/${{ env.RUN_ID }}/model" \
             --name "heart-disease-mlflow"
+            --env-manager local
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
