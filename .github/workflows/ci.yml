@@ -60,16 +60,31 @@ jobs:
           git diff --staged --quiet || git commit -m "ci: update run_id [skip ci]"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-      - name: Build Docker Image
-        env:
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-          MLFLOW_TRACKING_URI: https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow
+      - name: Build Docker Image (manual)
         run: |
-          mlflow models build-docker \
-            --model-uri "runs:/${{ env.RUN_ID }}/model" \
-            --name "heart-disease-mlflow"
-            --env-manager local
+          cat > Dockerfile << 'DOCKERFILE'
+          FROM python:3.12-slim
+
+          WORKDIR /app
+
+          RUN pip install --no-cache-dir \
+              mlflow==2.19.0 \
+              scikit-learn==1.5.0 \
+              pandas==2.2.2 \
+              numpy==1.26.4 \
+              matplotlib==3.9.0 \
+              seaborn==0.13.2
+
+          ENV MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+          ENV MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME
+          ENV MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD
+
+          EXPOSE 8080
+
+          CMD ["mlflow", "models", "serve", "--host", "0.0.0.0", "--port", "8080", "--env-manager", "local", "-m", "/app/model"]
+          DOCKERFILE
+
+          docker build -t heart-disease-mlflow:latest .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
