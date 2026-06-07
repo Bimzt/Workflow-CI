@@ -41,48 +41,66 @@ jobs:
           pip install mlflow==2.19.0 scikit-learn==1.5.0 \
                       pandas==2.2.2 numpy==1.26.4 matplotlib==3.9.0 seaborn==0.13.2
 
-      - name: Run mlflow project
+      - name: Debug - Test DagsHub connection
+        env:
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: |
-          export MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME
-          export MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD
-          cd MLProject
-          mlflow run . --env-manager=local \
-            -P n_estimators=100 \
-            -P max_depth=10 \
-            -P min_samples_split=2 \
-            -P max_features=sqrt
+          python - <<'EOF'
+          import os, mlflow
+          uri = "https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow"
+          os.environ['MLFLOW_TRACKING_USERNAME'] = os.environ.get('MLFLOW_TRACKING_USERNAME', '')
+          os.environ['MLFLOW_TRACKING_PASSWORD'] = os.environ.get('MLFLOW_TRACKING_PASSWORD', '')
+          print("Username set:", bool(os.environ['MLFLOW_TRACKING_USERNAME']))
+          print("Password set:", bool(os.environ['MLFLOW_TRACKING_PASSWORD']))
+          mlflow.set_tracking_uri(uri)
+          client = mlflow.tracking.MlflowClient()
+          exps = client.search_experiments()
+          print("Experiments found:", len(exps))
+          EOF
 
-      - name: Get latest MLflow run_id
-        run: |
-          RUN_ID=$(cat run_id.txt 2>/dev/null || echo "unknown")
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest Run ID: $RUN_ID"
+      # - name: Run mlflow project
+      #   run: |
+      #     export MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME
+      #     export MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD
+      #     cd MLProject
+      #     mlflow run . --env-manager=local \
+      #       -P n_estimators=100 \
+      #       -P max_depth=10 \
+      #       -P min_samples_split=2 \
+      #       -P max_features=sqrt
 
-      - name: Upload to GitHub
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add run_id.txt || true
-          git diff --staged --quiet || git commit -m "ci: update run_id [skip ci]"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+      # - name: Get latest MLflow run_id
+      #   run: |
+      #     RUN_ID=$(cat run_id.txt 2>/dev/null || echo "unknown")
+      #     echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+      #     echo "Latest Run ID: $RUN_ID"
 
-      - name: Build Docker Model
-        run: |
-          mlflow models build-docker \
-            --model-uri "runs:/${{ env.RUN_ID }}/model" \
-            --name "heart-disease-mlflow"
+      # - name: Upload to GitHub
+      #   run: |
+      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config --global user.name "github-actions[bot]"
+      #     git add run_id.txt || true
+      #     git diff --staged --quiet || git commit -m "ci: update run_id [skip ci]"
+      #     git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      # - name: Build Docker Model
+      #   run: |
+      #     mlflow models build-docker \
+      #       --model-uri "runs:/${{ env.RUN_ID }}/model" \
+      #       --name "heart-disease-mlflow"
 
-      - name: Tag Docker Image
-        run: |
-          docker tag heart-disease-mlflow:latest \
-            ${{ secrets.DOCKER_USERNAME }}/heart-disease-mlflow:latest
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/heart-disease-mlflow:latest
+      # - name: Tag Docker Image
+      #   run: |
+      #     docker tag heart-disease-mlflow:latest \
+      #       ${{ secrets.DOCKER_USERNAME }}/heart-disease-mlflow:latest
+
+      # - name: Push Docker Image
+      #   run: |
+      #     docker push ${{ secrets.DOCKER_USERNAME }}/heart-disease-mlflow:latest
