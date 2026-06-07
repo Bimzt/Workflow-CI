@@ -25,8 +25,11 @@ parser.add_argument('--min_samples_split', type=int,   default=2)
 parser.add_argument('--max_features',      type=str,   default='sqrt')
 args = parser.parse_args()
 
-MLFLOW_USERNAME = os.environ.get('MLFLOW_TRACKING_USERNAME', 'Bimzt')
-MLFLOW_PASSWORD = os.environ.get('MLFLOW_TRACKING_PASSWORD', '08a74973704bdd270b1becf7b837b39f84e2cbc4')
+MLFLOW_USERNAME = os.environ.get('MLFLOW_TRACKING_USERNAME')
+MLFLOW_PASSWORD = os.environ.get('MLFLOW_TRACKING_PASSWORD')
+
+if not MLFLOW_USERNAME or not MLFLOW_PASSWORD:
+    raise ValueError("MLFLOW credentials tidak ditemukan di environment variables")
 
 os.environ['MLFLOW_TRACKING_USERNAME'] = MLFLOW_USERNAME
 os.environ['MLFLOW_TRACKING_PASSWORD'] = MLFLOW_PASSWORD
