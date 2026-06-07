@@ -10,6 +10,9 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  MLFLOW_TRACKING_URI: https://dagshub.com/Bimzt/Eksperimen_SML_Bima_Setia.mlflow
+  MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
 
 jobs:
   train:
@@ -35,13 +38,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mlflow==2.19.0 dagshub==0.3.36 scikit-learn==1.5.0 \
+          pip install mlflow==2.19.0 scikit-learn==1.5.0 \
                       pandas==2.2.2 numpy==1.26.4 matplotlib==3.9.0 seaborn==0.13.2
 
       - name: Run mlflow project
-        env:
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: |
           export MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME
           export MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD
@@ -58,23 +58,15 @@ jobs:
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest Run ID: $RUN_ID"
 
-      - name: Install Python dependencies for upload
-        run: |
-          pip install mlflow==2.19.0
-
       - name: Upload to GitHub
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          # Simpan mlruns ke repo
-          git add mlruns/ run_id.txt || true
-          git diff --staged --quiet || git commit -m "ci: update mlruns artifacts [run: ${{ env.RUN_ID }}] [skip ci]"
+          git add run_id.txt || true
+          git diff --staged --quiet || git commit -m "ci: update run_id [skip ci]"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Build Docker Model
-        env:
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: |
           mlflow models build-docker \
             --model-uri "runs:/${{ env.RUN_ID }}/model" \
